@@ -16,6 +16,7 @@ import java.util.logging.Logger;
  */
 public abstract class SynchronousCommandTransport extends CommandTransport {
     protected Channel channel;
+    private ReaderThread readerThread;
 
     /**
      * Called by {@link Channel} to read the next command to arrive from the stream.
@@ -25,10 +26,15 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
     @Override
     public void setup(Channel channel, CommandReceiver receiver) {
         this.channel = channel;
-        new ReaderThread(receiver).start();
+        ReaderThread readerThread = new ReaderThread(receiver);
+        this.readerThread = readerThread;
+        readerThread.start();
     }
 
-    private final class ReaderThread extends Thread {
+    public final class ReaderThread extends Thread {
+
+        private volatile boolean paused = false;
+
         private int commandsReceived = 0;
         private int commandsExecuted = 0;
         private final CommandReceiver receiver;
@@ -43,6 +49,12 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
             final String name =channel.getName();
             try {
                 while(!channel.isInClosed()) {
+                  synchronized (this) {
+                  while (paused){
+                    LOGGER.log(Level.INFO,"Channel "+name+" paused");
+                    wait();
+                    }
+                  }
                     Command cmd = null;
                     try {
                         cmd = read();
@@ -79,7 +91,27 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
                 channel.pipeWriter.shutdown();
             }
         }
+        
+        public boolean isPaused(){
+          return paused;
+        }
+        
+        public void pause(){
+          paused = true;
+        }
+        
+        public void cont(){
+          synchronized (this) {
+           paused = false;
+           LOGGER.log(Level.INFO,"Channel "+channel.getName()+" continue");
+           notify();
+          }
+        }
     }
-
+    
+    public ReaderThread getReaderThread() {
+      return readerThread;
+    }
+    
     private static final Logger LOGGER = Logger.getLogger(SynchronousCommandTransport.class.getName());
 }

@@ -23,14 +23,16 @@
  */
 package hudson.remoting;
 
+import static java.lang.String.format;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.PipeWindow.Key;
 import hudson.remoting.PipeWindow.Real;
-import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.ForwarderFactory;
+import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.PortForwarder;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
@@ -38,21 +40,21 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.net.URL;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.net.URL;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Represents a communication channel to the remote peer.
@@ -309,6 +311,23 @@ public class Channel implements VirtualChannel, IChannel {
         protected OutputStream wrap(OutputStream os) { return os; }
         protected InputStream wrap(InputStream is) { return is; }
     }
+    
+    public CommandTransport getTransport() {
+      return transport;
+    }
+    
+    public boolean isPaused() {
+      return ((SynchronousCommandTransport)transport).getReaderThread().isPaused();
+    }
+
+    public void pause(){
+      ((SynchronousCommandTransport)transport).getReaderThread().pause();
+    }
+    
+    public void cont(){
+      ((SynchronousCommandTransport)transport).getReaderThread().cont();
+    }
+
 
     public Channel(String name, ExecutorService exec, InputStream is, OutputStream os) throws IOException {
         this(name,exec,Mode.BINARY,is,os,null);
@@ -471,6 +490,7 @@ public class Channel implements VirtualChannel, IChannel {
      * {@link Command}s are executed on a remote system in the order they are sent.
      */
     /*package*/ synchronized void send(Command cmd) throws IOException {
+      writeCmdToFile(cmd);
         if(outClosed!=null)
             throw new ChannelClosedException(outClosed);
         if(logger.isLoggable(Level.FINE))
@@ -478,6 +498,29 @@ public class Channel implements VirtualChannel, IChannel {
 
         transport.write(cmd, cmd instanceof CloseCommand);
         commandsSent++;
+    }
+
+    private void writeCmdToFile(Command cmd) {
+      FileWriter fileWriter = null;
+      try{
+        fileWriter = new FileWriter("/tmp/cmds",true);
+        fileWriter.write(format("Command: %s, class: %s\n", cmd.toString(),cmd.getClass()));
+        fileWriter.flush();
+      }
+      catch (IOException e) {
+        e.printStackTrace();
+      }
+      finally{
+        if (fileWriter!= null){
+          try {
+            fileWriter.close();
+          }
+          catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+      
     }
 
     /**
