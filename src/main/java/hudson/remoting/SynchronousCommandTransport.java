@@ -46,14 +46,16 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
 
         @Override
         public void run() {
-            final String name =channel.getName();
+            final String name = channel.getName();
+            final String simpleName = (name != null && !name.isEmpty()) ? name.substring(0, name.contains("[") ? name.indexOf("[") : name.length()).trim() : "";
+            final String pid = (name != null && !name.isEmpty() && name.contains(",") && name.contains("]")) ? name.substring(name.lastIndexOf(",") + 1, name.lastIndexOf("]")).trim() : "N/A";
             try {
                 while(!channel.isInClosed()) {
                   synchronized (this) {
-                  while (paused){
-                    LOGGER.log(Level.INFO,"Channel "+name+" paused");
-                    wait();
-                    }
+                    while (paused) {
+                      LOGGER.log(Level.INFO, simpleName + " pid=" + pid + " paused");
+                      wait();
+                      }
                   }
                     Command cmd = null;
                     try {
@@ -101,9 +103,12 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
         }
         
         public void cont(){
+          final String name = channel.getName();
+          final String simpleName = (name != null && !name.isEmpty()) ? name.substring(0, name.contains("[") ? name.indexOf("[") : name.length()).trim() : "";
+          final String pid = (name != null && !name.isEmpty() && name.contains(",") && name.contains("]")) ? name.substring(name.lastIndexOf(",") + 1, name.lastIndexOf("]")).trim() : "N/A";
           synchronized (this) {
            paused = false;
-           LOGGER.log(Level.INFO,"Channel "+channel.getName()+" continue");
+           LOGGER.log(Level.INFO, simpleName + " pid=" + pid + " continue");
            notify();
           }
         }

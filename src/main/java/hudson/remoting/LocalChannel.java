@@ -102,4 +102,19 @@ public class LocalChannel implements VirtualChannel {
     public void syncLocalIO() throws InterruptedException {
         // noop
     }
+
+  @Override
+  public boolean isPaused() {
+    return false; // FIXME - must be implemented
+  }
+
+  @Override
+  public void pause() {
+    // FIXME - must be implemented
+  }
+
+  @Override
+  public void cont() {
+    // FIXME - must be implemented
+  }
 }

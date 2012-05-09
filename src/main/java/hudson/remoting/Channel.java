@@ -316,14 +316,17 @@ public class Channel implements VirtualChannel, IChannel {
       return transport;
     }
     
+    @Override
     public boolean isPaused() {
       return ((SynchronousCommandTransport)transport).getReaderThread().isPaused();
     }
 
+    @Override
     public void pause(){
       ((SynchronousCommandTransport)transport).getReaderThread().pause();
     }
     
+    @Override
     public void cont(){
       ((SynchronousCommandTransport)transport).getReaderThread().cont();
     }

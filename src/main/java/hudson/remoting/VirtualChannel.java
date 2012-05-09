@@ -110,5 +110,11 @@ public interface VirtualChannel {
      * @since 1.402
      */
     void syncLocalIO() throws InterruptedException;
+    
+    public boolean isPaused();
+
+    public void pause();
+    
+    public void cont();
 }
 
