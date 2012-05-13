@@ -105,16 +105,16 @@ public class LocalChannel implements VirtualChannel {
 
   @Override
   public boolean isPaused() {
-    return false; // FIXME - must be implemented
+    return false;
   }
 
   @Override
   public void pause() {
-    // FIXME - must be implemented
+    // do nothing
   }
 
   @Override
   public void cont() {
-    // FIXME - must be implemented
+    // do nothing
   }
 }
